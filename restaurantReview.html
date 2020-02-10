@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Businesses in Maidstone</title>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+		<link rel="stylesheet" type="text/css" href="		
+		https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css"/>
+	<style>
+	body {
+		background-color: #b1f2fe;
+		margin: 40px;
+		font: 13px/20px normal Helvetica, Arial, sans-serif;
+		color: #4F5155;
+	}
+	h1 {
+		text-align: center;
+		color: #444;
+		font-size: 25px;		
+		margin: 0 0 14px 0;
+		padding: 14px 15px 10px 15px;
+	}
+	table {
+		margin-left: auto;
+		margin-right: auto;
+		border: 2px solid #2e2b00;
+	}
+	th {
+		font-size: 20px;
+		border: 2px solid #2e2b00;
+	}
+	td {
+		border: 2px solid #2e2b00;
+	}
+	#body {
+		margin: 0 15px 0 15px;
+	}
+	#container {
+		margin: 100px;
+		border: 2px solid #2e2b00;
+		background-color: #fff;
+	}
+	</style>
+	<script>
+	$(document).ready(function(){
+		
+		var count = 0;
+		var autoCompleteNames = [];
+		
+		/*Uses a parameter (the business name) to retrieve (via a jquery $.get) the average rating
+		and total ratings for that business (if they exist).*/
+		function getRatings(business){
+			//get call to all data from rating
+			//then use address field
+			return function(){
+				$.get("https://www.cs.kent.ac.uk/people/staff/yh/co539_a2_data/rating.php", {businessName: business}, function(ratingData){
+					if(ratingData == ""){
+						alert("This business does not have a customer rating.");
+					}
+					else{
+						$.each(ratingData, function(arrayKey2, arrayValue2){
+							alert("Average rating: " + ratingData[arrayKey2].avgRating + 
+							"\nTotal ratings: " + ratingData[arrayKey2].totalRatings);	
+						})
+					}
+				}, "json");
+			}
+		}			
+		
+		//Default page (1) to be shown upon page load
+		$.get("https://www.cs.kent.ac.uk/people/staff/yh/co539_a2_data/hygiene.php",{op:"get", page:1}, function(data){
+				$("#dataTable").append("<tr><th>Business Name</th><th>Address</th><th>Type</th><th>Hygiene Rating</th><th>Date of Inspection</th></tr>");
+				
+					$.each(data, function(arrayKey, arrayValue){
+						count++;
+						$("#dataTable").append('<tr><td>' + data[arrayKey].business + '</td><td>' 
+						+ data[arrayKey].address + '</td><td>' + data[arrayKey].type + '</td><td>' 
+						+ data[arrayKey].rating + '</td><td>' + data[arrayKey].date + '</td><td>'
+						+ "<button id='ratingBtn" + count + "'>Get rating</button></td></tr>");
+						$("#ratingBtn" + count).click(getRatings(data[arrayKey].business));						
+					});
+					count = 0;
+		}, "json");
+		
+		/*Retrieves the input value (from input field) and performs get function, using that string for business names.
+		the table for that page is cleared and replaced with the retrieved results (for the corresponding businesses)*/
+		function searchForBusiness(){
+			var searchString = $("#searchField").val();
+			
+			$.get("https://www.cs.kent.ac.uk/people/staff/yh/co539_a2_data/hygiene.php",{op:"search", business:searchString}, 
+			function(results){
+				$("#dataTable").empty();
+					
+				$("#dataTable").append("<tr><th>Business Name</th><th>Address</th><th>Type</th><th>Hygiene Rating</th><th>Date of Inspection</th></tr>");
+				
+				$.each(results, function(arrayKey, arrayValue){
+					count++
+					$("#dataTable").append('<tr><td>' + results[arrayKey].business + '</td><td>' 
+					+ results[arrayKey].address + '</td><td>' + results[arrayKey].type + '</td><td>' 
+					+ results[arrayKey].rating + '</td><td>' + results[arrayKey].date + '</td><td>'
+					+ "<button id='ratingBtn" + count + "'>Get rating</button></td></tr>");
+					$("#ratingBtn" + count).click(getRatings(results[arrayKey].business));
+					autoCompleteNames.push(results[arrayKey].business);
+				})
+				count = 0;
+					
+			}, "json");
+			$("#searchField").val('');
+		}
+		
+		/*Function to be called to show the appropriate page corresponding to the page number (using get method)
+		and clears any existing records before repopulating table*/
+		function showPage(number){
+			return function(){
+				$.get("https://www.cs.kent.ac.uk/people/staff/yh/co539_a2_data/hygiene.php",{op:"get", page:number}, function(data){
+				
+					$("#dataTable").empty();
+					
+					$("#dataTable").append("<tr><th>Business Name</th><th>Address</th><th>Type</th><th>Hygiene Rating</th><th>Date of Inspection</th></tr>");
+					
+					$.each(data, function(arrayKey, arrayValue){
+						count++;
+						$("#dataTable").append('<tr><td>' + data[arrayKey].business + '</td><td>' 
+						+ data[arrayKey].address + '</td><td>' + data[arrayKey].type + '</td><td>' 
+						+ data[arrayKey].rating + '</td><td>' + data[arrayKey].date + '</td><td>'
+						+ "<button id='ratingBtn" + count + "'>Get rating</button></td></tr>");
+						$("#ratingBtn" + count).click(getRatings(data[arrayKey].business));						
+					});
+					count = 0;
+				}, "json");									
+			}		
+		}		
+		
+		/*loops until end of number of pages and produces the corresponding amount of buttons.
+		The buttons are provided with click events (of which show that page for that button).*/
+		$.get("https://www.cs.kent.ac.uk/people/staff/yh/co539_a2_data/hygiene.php",{op:"pages"}, function(data){
+		var pages = data[10] + data[11];
+			for(var i = 1; i <= pages; i++){
+				$("#header").append("<button id='pageButton" + i + "'>Page " + i + "</button>");
+					$("#pageButton" + i).click(showPage(i));
+			}		
+		});		
+		
+		//The input field and search button for findiing businesses of specified input.
+		//input field utilises autocomplete functionality
+		$("#container").append("Enter Business Name:");
+		$("#container").append("<input id='searchField' type='text' />");
+		$("#container").append("<button id='searchBtn' style='margin-left:150px'>Search</button>");
+		$("#searchBtn").click(searchForBusiness);
+		
+		$("#searchField").autocomplete({
+			source:autoCompleteNames
+		});			
+	});
+	</script>
+	</head>
+	<body>
+		<div id="header">
+			<h1>Businesses in Maidstone</h1>			
+		</div>
+		<div id="container">
+			<p id="test">This page displays details about different businesses, located in Maidstone	</p>
+			<table id="dataTable">
+			</table>
+			<br />
+		</div>			
+	</body>
+</html> 
